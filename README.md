@@ -21,7 +21,7 @@ pip install git+https://github.com/ItsRqtl/interactions-transcript.git
 
 ```bat
 git clone https://github.com/ItsRqtl/interactions-transcript.git
-cd interactions-help
+cd interactions-transcript
 pip install .
 ```
 
