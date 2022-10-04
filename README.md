@@ -1,6 +1,6 @@
 # interactions-transcript
 
-WIP: This extension is currently work-in-progress, which means it might not function well
+WIP: This extension is currently work-in-progress, which means it might not function well  
 WIP: HTML output mode is not yet implemented. Only JSON, CSV, XML and plain text are supported.
 
 ## Installation
