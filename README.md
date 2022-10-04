@@ -60,7 +60,7 @@ Parameters of method `get_transcript`:
 
 |Parameter|Type|Description|Default Value|
 |---|---|---|---|
-|channel|`interactions.Channel`|The channel to get transcript from|`None`|
+|channel|`interactions.Channel`|The channel to get transcript from||
 |limit|`int`|The limit of messages to get|`100`|
 |pytz_timezone|`str`|The timezone to use|`"UTC"`|
 |military_time|`bool`|Whether to use military time or not|`False`|
