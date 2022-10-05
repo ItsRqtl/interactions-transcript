@@ -598,10 +598,10 @@ async def get_transcript(
 
                 if (
                     previous is None
-                    or i.referenced_message != ""
-                    or previous.author.id != i.author.id
+                    or referenced_message != ""
+                    or (previous and previous.author.id != i.author.id)
                     or i.webhook_id is not None
-                    or i.id.timestamp > (i.previous.id.timestamp + timedelta(minutes=4))
+                    or (previous and i.id.timestamp > (previous.id.timestamp + timedelta(minutes=4)))
                 ):
                     if previous is not None:
                         data += "</div>"
