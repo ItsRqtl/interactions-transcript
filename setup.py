@@ -75,6 +75,7 @@ setup(
     author_email=author_email,
     license="MIT",
     packages=[f"interactions.ext.{_package_name}"],
+    include_package_data=True,
     python_requires=">=3.8.6",
     classifiers=[
         "Programming Language :: Python :: 3",
