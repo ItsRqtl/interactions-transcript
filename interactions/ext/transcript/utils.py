@@ -442,9 +442,9 @@ def embed_markdown(content):
     if len(content) == 1:
         if re.search(pattern, content[0]):
             content = f'<div class="quote">{content[0][2:]}</div>'
-            return
+            return content
         content = content[0]
-        return
+        return content
 
     for x in content:
         if re.search(pattern, x) and y:

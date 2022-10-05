@@ -384,20 +384,20 @@ async def get_transcript(
                 embeds = ""
                 if i.embeds:
                     for e in i.embeds:
-                        (r,g,b) = tuple(int(hex(e.color).lstrip('#')[i:i+2], 16) for i in (0, 2, 4)) if e.color else (0x20, 0x22, 0x25) 
+                        (r,g,b) = tuple(int(hex(e.color).lstrip('0x')[i:i+2], 16) for i in (0, 2, 4)) if e.color else (0x20, 0x22, 0x25) 
 
                         title = ""
                         if e.title:
                             with open(dir_path+"/html/embed/title.html", "r") as f:
                                 rawhtml = f.read()
-                            rawhtml.replace("{{EMBED_TITLE}}", await parse_md(e.title, channel))
+                            rawhtml = rawhtml.replace("{{EMBED_TITLE}}", await parse_md(e.title, channel))
                             title = rawhtml
 
                         description = ""
                         if e.description:
                             with open(dir_path+"/html/embed/description.html", "r") as f:
                                 rawhtml = f.read()
-                            rawhtml.replace("{{EMBED_DESCRIPTION}}", await parse_embed(e.description, channel))
+                            rawhtml = rawhtml.replace("{{EMBED_DESC}}", await parse_embed(e.description, channel))
                             description = rawhtml
                         
                         fields = ""
