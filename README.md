@@ -2,7 +2,8 @@
 
 This project is a improved version of [mahtoid's DiscordChatExporterPy library](https://github.com/mahtoid/DiscordChatExporterPy), ported to an extension of interactions.py, another Discord API wrapper, with extra features.  
 
-WIP: This extension is currently work-in-progress, which means it might not function well  
+WIP: This extension is currently work-in-progress, which means it might not function well
+WIP: HTML mode doesn't support embeds yet. They will show as blank.  
 
 ## Installation
 
