@@ -11,6 +11,7 @@ styles = {
     "link": "#4F545C",
 }
 
+
 class Default:
     default_avatar: str = (
         "https://cdn.jsdelivr.net/gh/mahtoid/DiscordUtils@master/discord-default.png"
@@ -506,7 +507,8 @@ async def parse_md(content, channel):
     return await parse_emoji(
         code_block_markdown(
             normal_markdown(links(await parse_mention(content, channel)))
-        ), channel
+        ),
+        channel,
     )
 
 
@@ -516,7 +518,8 @@ async def parse_embed(content, channel):
             normal_markdown(
                 embed_markdown(links(await parse_mention(content, channel)))
             )
-        ), channel
+        ),
+        channel,
     )
 
 
@@ -525,7 +528,8 @@ async def parse_msg_ref(content, channel):
         await parse_emoji(
             code_block_markdown(
                 normal_markdown(links(await parse_mention(content, channel)))
-            ), channel
+            ),
+            channel,
         )
     )
 
@@ -543,19 +547,53 @@ def get_file_size(file_size):
     s = round(file_size / p, 2)
     return "%s %s" % (s, size_name[i])
 
+
 def get_file_icon(url) -> str:
     acrobat_types = "pdf"
     webcode_types = "html", "htm", "css", "rss", "xhtml", "xml"
     code_types = "py", "cgi", "pl", "gadget", "jar", "msi", "wsf", "bat", "php", "js"
     document_types = (
-        "txt", "doc", "docx", "rtf", "xls", "xlsx", "ppt", "pptx", "odt", "odp", "ods", "odg", "odf", "swx",
-        "sxi", "sxc", "sxd", "stw"
+        "txt",
+        "doc",
+        "docx",
+        "rtf",
+        "xls",
+        "xlsx",
+        "ppt",
+        "pptx",
+        "odt",
+        "odp",
+        "ods",
+        "odg",
+        "odf",
+        "swx",
+        "sxi",
+        "sxc",
+        "sxd",
+        "stw",
     )
     archive_types = (
-        "br", "rpm", "dcm", "epub", "zip", "tar", "rar", "gz", "bz2", "7x", "deb", "ar", "Z", "lzo", "lz", "lz4",
-        "arj", "pkg", "z"
+        "br",
+        "rpm",
+        "dcm",
+        "epub",
+        "zip",
+        "tar",
+        "rar",
+        "gz",
+        "bz2",
+        "7x",
+        "deb",
+        "ar",
+        "Z",
+        "lzo",
+        "lz",
+        "lz4",
+        "arj",
+        "pkg",
+        "z",
     )
-    extension = url.rsplit('.', 1)[1]
+    extension = url.rsplit(".", 1)[1]
     if extension in acrobat_types:
         return Default.file_attachment_acrobat
     elif extension in webcode_types:
