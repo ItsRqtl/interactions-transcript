@@ -53,7 +53,6 @@ class Transcript(Extension):
     def __init__(self, client):
         self.client = client
 
-
 async def get_transcript(
     channel: Channel,
     limit: int = 100,
@@ -141,7 +140,7 @@ async def get_transcript(
         )
         return content
 
-    elif mode == "csv" or mode == "json":
+    elif mode == "csv" or mode == "json" or mode == "xml":
         data = []
         for i in msg:
             if military_time:
@@ -170,7 +169,7 @@ async def get_transcript(
                 {
                     "Guild": {"name": guild.name, "id": str(guild.id)},
                     "Channel": {"name": channel.name, "id": str(channel.id)},
-                    "Message": {"id": str(i.id)},
+                    "Metadata": {"id": str(i.id)},
                     "Author": {
                         "username": i.author.username + "#" + i.author.discriminator,
                         "id": str(i.author.id),
@@ -206,13 +205,13 @@ async def get_transcript(
                     if i.attachments
                     else [],
                     "Stickers": [
-                        {"name": s.name, "id": s.id, "format": s.format_type}
+                        {"name": s.name, "id": str(s.id), "format": s.format_type}
                         for s in i.sticker_items
                     ]
                     if i.sticker_items
                     else [],
                     "Reactions": [
-                        {"name": r.emoji.name, "id": r.emoji.id, "count": r.count}
+                        {"name": r.emoji.name, "id": str(r.emoji.id), "count": r.count}
                         for r in i.reactions
                     ]
                     if i.reactions
@@ -226,6 +225,8 @@ async def get_transcript(
         elif mode == "json":
             df.to_json(file := io.StringIO(), index=True, orient="records")
             return file.getvalue()
+        elif mode == "xml":
+            raise NotImplementedError("XML export is not implemented yet.")
 
     elif mode == "html":
         time_format = (
