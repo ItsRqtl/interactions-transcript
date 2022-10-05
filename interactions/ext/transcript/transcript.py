@@ -652,7 +652,7 @@ async def get_transcript(
                     rawhtml = rawhtml.replace("{{EMOJI}}", reactions)
                     rawhtml = rawhtml.replace("{{ATTACHMENTS}}", attachments)
                     rawhtml = rawhtml.replace("{{COMPONENTS}}", components)
-                    data += rawhtml
+
                 else:
                     with open(dir_path + "/html/message/message.html", "r") as f:
                         rawhtml = f.read()
