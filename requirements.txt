@@ -1,6 +1,5 @@
 discord-py-interactions >= 4.3.1
 pytz
 pandas
-lxml
 grapheme
 emoji

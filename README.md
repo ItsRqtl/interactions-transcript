@@ -66,7 +66,7 @@ Parameters of method `get_transcript`:
 |pytz_timezone|`str`|The timezone to use|`"UTC"`|
 |military_time|`bool`|Whether to use military time or not|`False`|
 |fancy_time|`bool`|Whether to use fancy time or not (only with html mode)|`False`|
-|mode|`str`|The mode to use for the transcript (html, json, xml, csv, or plain)|`"html"`|
+|mode|`str`|The mode to use for the transcript (html, json, csv, or plain)|`"html"`|
 
 ## Attributions
 

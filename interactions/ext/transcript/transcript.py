@@ -68,7 +68,7 @@ async def get_transcript(
     :param pytz_timezone: The timezone to use for the transcript
     :param military_time: Whether to use military time or not
     :param fancy_time: Whether to use fancy time or not (only with html mode)
-    :param mode: The mode to use for the transcript (html, json, xml, csv, or plain)
+    :param mode: The mode to use for the transcript (html, json, csv, or plain)
     :return: A string of the transcript
     """
 
@@ -118,6 +118,16 @@ async def get_transcript(
                 content += "\n{Attachments}"
                 for a in i.attachments:
                     content += f"{newline}{a.url}"
+            if i.sticker_items:
+                content += "\n{Stickers}"
+                for s in i.sticker_items:
+                    if s.format_type == 3:
+                        sticker = Sticker(
+                            **await channel._client.get_sticker(i.sticker_items[0].id)
+                        )
+                        content += f"{newline}https://cdn.jsdelivr.net/gh/mahtoid/DiscordUtils@master/stickers/{sticker.pack_id}/{sticker.id}.gif"
+                    else:
+                        content += f"{newline}https://media.discordapp.net/stickers/{s.id}.png"
             if i.reactions:
                 content += "\n{Reactions}"
                 for r in i.reactions:
@@ -131,7 +141,7 @@ async def get_transcript(
         )
         return content
 
-    elif mode == "csv" or mode == "xml" or mode == "json":
+    elif mode == "csv" or mode == "json":
         data = []
         for i in msg:
             if military_time:
@@ -195,6 +205,12 @@ async def get_transcript(
                     "Attachments": [a.url for a in i.attachments]
                     if i.attachments
                     else [],
+                    "Stickers": [
+                        {"name": s.name, "id": s.id, "format": s.format_type}
+                        for s in i.sticker_items
+                    ]
+                    if i.sticker_items
+                    else [],
                     "Reactions": [
                         {"name": r.emoji.name, "id": r.emoji.id, "count": r.count}
                         for r in i.reactions
@@ -207,15 +223,6 @@ async def get_transcript(
         if mode == "csv":
             df.to_csv(file := io.StringIO(), index=True, header=True)
             return file.getvalue()
-        elif mode == "xml":
-            df.to_xml(
-                file := io.BytesIO(),
-                index=True,
-                encoding="utf-8",
-                root_name="transcript",
-                row_name="message",
-            )
-            return file.getvalue().decode("utf-8")
         elif mode == "json":
             df.to_json(file := io.StringIO(), index=True, orient="records")
             return file.getvalue()
