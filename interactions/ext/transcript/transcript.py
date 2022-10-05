@@ -307,8 +307,8 @@ async def get_transcript(
                 else:
                     if not (
                         ref := await channel._client.get_message(
-                            i.referenced_message.channel_id,
-                            i.referenced_message.message_id,
+                            channel.id,
+                            int(i.referenced_message._json['id']),
                         )
                     ):
                         with open(
@@ -344,7 +344,7 @@ async def get_transcript(
                         rawhtml = rawhtml.replace(
                             "{{USER_COLOUR}}",
                             await parse_md(
-                                f"color: {hex(ref.author.accent_color)[2:]}", channel
+                                f"color: {hex(ref.author.accent_color)[2:] if ref.author.accent_color else '000000'}", channel
                             ),
                         )
                         rawhtml = rawhtml.replace(
