@@ -28,6 +28,8 @@ from interactions import (
     Sticker,
     ComponentType,
 )
+
+from .emoji_convert import convert_emoji
 from .utils import (
     Default,
     get_file_icon,
@@ -575,6 +577,11 @@ async def get_transcript(
                 if i.reactions:
                     for r in i.reactions:
                         if not r.emoji.id:
+                            with open(dir_path + "/html/reaction/emoji.html", "r") as f:
+                                rawhtml = f.read()
+                            rawhtml = rawhtml.replace("{{EMOJI}}", await convert_emoji(str(r.emoji)))
+                            rawhtml = rawhtml.replace("{{EMOJI_COUNT}}", str(r.count))
+                        else:
                             with open(
                                 dir_path + "/html/reaction/custom_emoji.html", "r"
                             ) as f:
@@ -584,11 +591,6 @@ async def get_transcript(
                             rawhtml = rawhtml.replace(
                                 "{{EMOJI_FILE}}", "gif" if r.emoji.animated else "png"
                             )
-                        else:
-                            with open(dir_path + "/html/reaction/emoji.html", "r") as f:
-                                rawhtml = f.read()
-                            rawhtml = rawhtml.replace("{{EMOJI}}", str(r.emoji.id))
-                            rawhtml = rawhtml.replace("{{EMOJI_COUNT}}", str(r.count))
                         reactions += rawhtml
 
                 if reactions:

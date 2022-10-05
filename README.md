@@ -4,7 +4,6 @@ This project is a improved version of [mahtoid's DiscordChatExporterPy library](
 
 WIP: This extension is currently work-in-progress, which means it might not function well  
 WIP: HTML mode doesn't support embeds yet. They will show as blank.  
-Known bug: HTML mode emojis are not showing correctly.  
 
 ## Installation
 
