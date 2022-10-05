@@ -33,6 +33,7 @@ from .emoji_convert import convert_emoji
 from .utils import (
     Default,
     get_file_icon,
+    parse_embed,
     parse_emoji,
     parse_md,
     parse_msg_ref,
@@ -383,7 +384,98 @@ async def get_transcript(
                 embeds = ""
                 if i.embeds:
                     for e in i.embeds:
-                        pass
+                        (r,g,b) = tuple(int(hex(e.color).lstrip('#')[i:i+2], 16) for i in (0, 2, 4)) if e.color else (0x20, 0x22, 0x25) 
+
+                        title = ""
+                        if e.title:
+                            with open(dir_path+"/html/embed/title.html", "r") as f:
+                                rawhtml = f.read()
+                            rawhtml.replace("{{EMBED_TITLE}}", await parse_md(e.title, channel))
+                            title = rawhtml
+
+                        description = ""
+                        if e.description:
+                            with open(dir_path+"/html/embed/description.html", "r") as f:
+                                rawhtml = f.read()
+                            rawhtml.replace("{{EMBED_DESCRIPTION}}", await parse_embed(e.description, channel))
+                            description = rawhtml
+                        
+                        fields = ""
+                        if e.fields:
+                            for field in e.fields:
+                                if field.inline:
+                                    with open(dir_path+"/html/embed/field-inline.html", "r") as f:
+                                        rawhtml = f.read()
+                                else:
+                                    with open(dir_path+"/html/embed/field.html", "r") as f:
+                                        rawhtml = f.read()
+                                rawhtml = rawhtml.replace("{{FIELD_NAME}}", await parse_md(field.name, channel))
+                                rawhtml = rawhtml.replace("{{FIELD_VALUE}}", await parse_embed(field.value, channel))
+                                fields += rawhtml
+
+                        author = ''
+                        if e.author:
+                            author = e.author.name if e.author.name else ""
+                            author = f'<a class="chatlog__embed-author-name-link" href="{e.author.url}">{author}</a>' if e.author.url else author
+                            author_icon = ''
+                            if e.author.icon_url:
+                                with open(dir_path+"/html/embed/author_icon.html", "r") as f:
+                                    rawhtml = f.read()
+                                rawhtml = rawhtml.replace("{{AUTHOR}}", author)
+                                rawhtml = rawhtml.replace("{{AUTHOR_ICON}}", e.author.icon_url)
+                                author_icon = rawhtml
+                            
+                            if author_icon == '' and author != '':
+                                with open(dir_path+"/html/embed/author.html", "r") as f:
+                                    rawhtml = f.read()
+                                rawhtml = rawhtml.replace("{{AUTHOR}}", author)
+                                author = rawhtml
+                            else:
+                                author = author_icon
+                        
+                        image = ''
+                        if e.image:
+                            with open(dir_path+"/html/embed/image.html", "r") as f:
+                                rawhtml = f.read()
+                            rawhtml = rawhtml.replace("{{EMBED_IMAGE}}", e.image.proxy_url)
+                            image = rawhtml
+                        
+                        thumbnail = ''
+                        if e.thumbnail:
+                            with open(dir_path+"/html/embed/thumbnail.html", "r") as f:
+                                rawhtml = f.read()
+                            rawhtml = rawhtml.replace("{{EMBED_THUMBNAIL}}", e.thumbnail.url)
+                            thumbnail = rawhtml
+
+                        footer = ''
+                        if e.footer:
+                            footer = e.footer.text if e.footer.text else ""
+                            icon = e.footer.icon_url if e.footer.icon_url else None
+
+                            if icon is not None:
+                                with open(dir_path+"/html/embed/footer_image.html", "r") as f:
+                                    rawhtml = f.read()
+                                rawhtml = rawhtml.replace("{{EMBED_FOOTER}}", footer)
+                                rawhtml = rawhtml.replace("{{EMBED_FOOTER_ICON}}", icon)
+                            else:
+                                with open(dir_path+"/html/embed/footer.html", "r") as f:
+                                    rawhtml = f.read()
+                                rawhtml = rawhtml.replace("{{EMBED_FOOTER}}", footer)
+                            footer = rawhtml
+
+                        with open(dir_path+"/html/embed/body.html", "r") as f:
+                            rawhtml = f.read()
+                        rawhtml = rawhtml.replace("{{EMBED_R}}", str(r))
+                        rawhtml = rawhtml.replace("{{EMBED_G}}", str(g))
+                        rawhtml = rawhtml.replace("{{EMBED_B}}", str(b))
+                        rawhtml = rawhtml.replace("{{EMBED_AUTHOR}}", author)
+                        rawhtml = rawhtml.replace("{{EMBED_TITLE}}", title)
+                        rawhtml = rawhtml.replace("{{EMBED_IMAGE}}", image)
+                        rawhtml = rawhtml.replace("{{EMBED_THUMBNAIL}}", thumbnail)
+                        rawhtml = rawhtml.replace("{{EMBED_DESC}}", description)
+                        rawhtml = rawhtml.replace("{{EMBED_FIELDS}}", fields)
+                        rawhtml = rawhtml.replace("{{EMBED_FOOTER}}", footer)
+                        embeds += rawhtml
 
                 attachments = ""
                 if i.attachments:
