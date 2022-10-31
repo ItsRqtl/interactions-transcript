@@ -1,6 +1,12 @@
-import re
+import datetime
+import html
 import math
-from interactions import Channel, Member, User, Guild
+import re
+
+import pytz
+
+from interactions import Channel, Guild, LibraryException, Member, User
+
 from .emoji_convert import convert_emoji
 
 styles = {
@@ -13,6 +19,7 @@ styles = {
 
 
 class Default:
+    logo: str = "https://cdn.jsdelivr.net/gh/mahtoid/DiscordUtils@master/discord-logo.svg"
     default_avatar: str = (
         "https://cdn.jsdelivr.net/gh/mahtoid/DiscordUtils@master/discord-default.png"
     )
@@ -57,13 +64,23 @@ class Regex:
     REGEX_CHANNELS_2 = r"<#([0-9]+)>"
     REGEX_EMOJIS = r"&lt;a?(:[^\n:]+:)[0-9]+&gt;"
     REGEX_EMOJIS_2 = r"<a?(:[^\n:]+:)[0-9]+>"
+    REGEX_TIME_HOLDER = (
+        [r"&lt;t:([0-9]+):t&gt;", "%H:%M"],
+        [r"&lt;t:([0-9]+):T&gt;", "%T"],
+        [r"&lt;t:([0-9]+):d&gt;", "%d/%m/%Y"],
+        [r"&lt;t:([0-9]+):D&gt;", "%e %B %Y"],
+        [r"&lt;t:([0-9]+):f&gt;", "%e %B %Y %H:%M"],
+        [r"&lt;t:([0-9]+):F&gt;", "%A, %e %B %Y %H:%M"],
+        [r"&lt;t:([0-9]+):R&gt;", "%e %B %Y %H:%M"],
+        [r"&lt;t:([0-9]+)&gt;", "%e %B %Y %H:%M"],
+    )
 
     ESCAPE_LT = "______lt______"
     ESCAPE_GT = "______gt______"
     ESCAPE_AMP = "______amp______"
 
 
-def escape_mention(content):
+async def escape_mention(content):
     for match in re.finditer(
         "(%s|%s|%s|%s|%s|%s|%s|%s)"
         % (
@@ -92,7 +109,7 @@ def escape_mention(content):
     return content
 
 
-def unescape_mention(content):
+async def unescape_mention(content):
     return (
         content.replace(Regex.ESCAPE_LT, "<")
         .replace(Regex.ESCAPE_GT, ">")
@@ -111,8 +128,7 @@ async def channel_mention(content, c):
                 content[match.start() : match.end()],
                 "#deleted-channel"
                 if channel is None
-                else '<span class="mention" title="%s">#%s</span>'
-                % (channel.id, channel.name),
+                else '<span class="mention" title="%s">#%s</span>' % (channel.id, channel.name),
             )
 
             match = re.search(regex, content)
@@ -136,8 +152,7 @@ async def member_mention(content, c):
 
             content = content.replace(
                 content[match.start() : match.end()],
-                '<span class="mention" title="%s">@%s</span>'
-                % (str(member_id), str(member_name))
+                '<span class="mention" title="%s">@%s</span>' % (str(member_id), str(member_name))
                 if member
                 else '<span class="mention" title="%s">&lt;@%s></span>'
                 % (str(member_id), str(member_id)),
@@ -154,10 +169,8 @@ async def role_mention(content, c):
             role_id = int(match.group(1))
             role = None
             try:
-                role = await Guild(**await c._client.get_guild(c.guild_id)).get_role(
-                    role_id
-                )
-            except:
+                role = await Guild(**await c._client.get_guild(c.guild_id)).get_role(role_id)
+            except LibraryException:
                 pass
 
             if role is None:
@@ -174,20 +187,48 @@ async def role_mention(content, c):
     return content
 
 
-async def parse_mention(content, channel):
-    return await role_mention(
-        (
-            await member_mention(
-                (
-                    await channel_mention(
-                        unescape_mention(escape_mention(escape_mention(content))),
-                        channel,
-                    )
-                ),
-                channel,
+async def time_mention(content, tz):
+    holder = Regex.REGEX_TIME_HOLDER
+    timezone = pytz.timezone(tz)
+
+    for p in holder:
+        regex, strf = p
+        match = re.search(regex, content)
+        while match is not None:
+            time = datetime.datetime.fromtimestamp(int(match.group(1)), timezone)
+            ui_time = time.strftime(strf)
+            tooltip_time = time.strftime("%A, %e %B %Y at %H:%M")
+            original = match.group().replace("&lt;", "<").replace("&gt;", ">")
+            replacement = (
+                f'<span class="unix-timestamp" data-timestamp="{tooltip_time}" raw-content="{original}">'
+                f"{ui_time}</span>"
             )
+
+            content = content.replace(content[match.start() : match.end()], replacement)
+
+            match = re.search(regex, content)
+        return content
+
+
+async def parse_mention(content, channel, tz):
+    return await time_mention(
+        await role_mention(
+            (
+                await member_mention(
+                    (
+                        await channel_mention(
+                            await unescape_mention(
+                                await escape_mention(await escape_mention(content))
+                            ),
+                            channel,
+                        )
+                    ),
+                    channel,
+                )
+            ),
+            channel,
         ),
-        channel,
+        tz,
     )
 
 
@@ -203,6 +244,7 @@ def return_to_markdown(content):
             r'class="spoiler-text">(.*?)<\/span><\/span>',
             "||%s||",
         ],
+        [r'<span class="unix-timestamp" data-timestamp=".*?" raw-content="(.*?)">.*?</span>', "%s"],
     )
 
     for x in holders:
@@ -213,7 +255,7 @@ def return_to_markdown(content):
         while match is not None:
             affected_text = match.group(1)
             content = content.replace(
-                content[match.start() : match.end()], r % affected_text
+                content[match.start() : match.end()], r % html.escape(affected_text)
             )
             match = re.search(pattern, content)
 
@@ -228,31 +270,38 @@ def return_to_markdown(content):
                 "[%s](%s)" % (affected_text, affected_url),
             )
         else:
-            content = content.replace(
-                content[match.start() : match.end()], "%s" % affected_url
-            )
+            content = content.replace(content[match.start() : match.end()], "%s" % affected_url)
         match = re.search(pattern, content)
 
     return content.lstrip().rstrip()
 
 
 def links(content):
-    def suppressed(url):
-        if url.startswith("&lt;<") and url.endswith(">&gt;"):
-            return url[1:-1]
+    def suppressed(url, raw_url=None):
+        pattern = rf"`.*{raw_url}.*`"
+        match = re.search(pattern, content)
+
+        if "&lt;" in url and "&gt;" in url and not match:
+            return url.replace("&lt;", "").replace("&gt;", "")
         return url
 
     content = re.sub("\n", "<br>", content)
     output = []
     if "http://" in content or "https://" in content and "](" not in content:
         for word in content.replace("<br>", " <br>").split():
-            if word.startswith("&lt;") and word.endswith("&gt;"):
+            if "http" not in word:
+                output.append(word)
+                continue
+
+            if "&lt;" in word and "&gt;" in word:
                 pattern = r"&lt;https?:\/\/(.*)&gt;"
-                url = re.search(pattern, word).group(1)
-                url = f'<a href="https://{url}">https://{url}</a>'
-                output.append(url)
+                match_url = re.search(pattern, word).group(1)
+                url = f'<a href="https://{match_url}">https://{match_url}</a>'
+                word = word.replace("https://" + match_url, url)
+                word = word.replace("http://" + match_url, url)
+                output.append(suppressed(word, match_url))
             elif "https://" in word:
-                pattern = r"https://[^\s>\"*]*"
+                pattern = r"https://[^\s>`\"*]*"
                 word_link = re.search(pattern, word).group()
                 if word_link.endswith(")"):
                     output.append(word)
@@ -261,7 +310,7 @@ def links(content):
                 word = re.sub(pattern, word_full, word)
                 output.append(suppressed(word))
             elif "http://" in word:
-                pattern = r"http://[^\s>\"*]*"
+                pattern = r"http://[^\s>`\"*]*"
                 word_link = re.search(pattern, word).group()
                 if word_link.endswith(")"):
                     output.append(word)
@@ -296,9 +345,7 @@ def normal_markdown(content):
         match = re.search(pattern, content)
         while match is not None:
             affected_text = match.group(1)
-            content = content.replace(
-                content[match.start() : match.end()], r % affected_text
-            )
+            content = content.replace(content[match.start() : match.end()], r % affected_text)
             match = re.search(pattern, content)
 
     # > quote
@@ -383,8 +430,7 @@ def code_block_markdown(content, reference=False):
         if not reference:
             content = content.replace(
                 content[match.start() : match.end()],
-                '<div class="pre pre--multiline %s">%s</div>'
-                % (language_class, affected_text),
+                '<div class="pre pre--multiline %s">%s</div>' % (language_class, affected_text),
             )
         else:
             content = content.replace(
@@ -492,9 +538,7 @@ async def parse_emoji(content):
         match = re.search(p, content)
         while match is not None:
             emoji_id = match.group(1)
-            content = content.replace(
-                content[match.start() : match.end()], r % emoji_id
-            )
+            content = content.replace(content[match.start() : match.end()], r % emoji_id)
             match = re.search(p, content)
     return content
 
@@ -503,39 +547,28 @@ def parse_br(content):
     return content.replace("<br>", " ")
 
 
-async def parse_md(content, channel):
+async def parse_md(content, channel, tz):
     return await parse_emoji(
-        code_block_markdown(
-            normal_markdown(links(await parse_mention(content, channel)))
-        ),
+        code_block_markdown(normal_markdown(links(await parse_mention(content, channel, tz)))),
         channel,
+        tz,
     )
 
 
-async def parse_embed(content, channel):
+async def parse_embed(content, channel, tz):
     return await parse_emoji(
         code_block_markdown(
-            normal_markdown(
-                embed_markdown(links(await parse_mention(content, channel)))
-            )
+            normal_markdown(embed_markdown(links(await parse_mention(content, channel, tz))))
         ),
-        channel,
     )
 
 
-async def parse_msg_ref(content, channel):
+async def parse_msg_ref(content, channel, tz):
     return parse_br(
         await parse_emoji(
-            code_block_markdown(
-                normal_markdown(links(await parse_mention(content, channel)))
-            ),
-            channel,
+            code_block_markdown(normal_markdown(links(await parse_mention(content, channel, tz)))),
         )
     )
-
-
-async def parse_emoji(content, channel):
-    return await convert_emoji(await parse_mention(content, channel))
 
 
 def get_file_size(file_size):
