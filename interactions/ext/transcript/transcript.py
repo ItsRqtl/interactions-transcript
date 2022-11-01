@@ -565,7 +565,7 @@ async def get_transcript(
                                 rawhtml = rawhtml.replace(
                                     "{{EMOJI}}",
                                     await parse_emoji(
-                                        str(c.emoji) if c.emoji else "", channel, tz=pytz_timezone
+                                        str(c.emoji) if c.emoji else "", channel
                                     ),
                                 )
                                 rawhtml = rawhtml.replace(
@@ -590,7 +590,7 @@ async def get_transcript(
                                             rawhtml = rawhtml.replace(
                                                 "{{EMOJI}}",
                                                 await parse_emoji(
-                                                    str(option.emoji), channel, tz=pytz_timezone
+                                                    str(option.emoji), channel
                                                 ),
                                             )
                                             rawhtml = rawhtml.replace(
