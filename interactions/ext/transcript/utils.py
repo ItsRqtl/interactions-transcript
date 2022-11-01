@@ -550,8 +550,6 @@ def parse_br(content):
 async def parse_md(content, channel, tz):
     return await parse_emoji(
         code_block_markdown(normal_markdown(links(await parse_mention(content, channel, tz)))),
-        channel,
-        tz,
     )
 
 
