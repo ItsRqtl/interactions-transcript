@@ -143,7 +143,7 @@ async def get_transcript(
         )
         return content
 
-    elif mode == "csv" or mode == "json" or mode == "xml":
+    elif mode == "csv" or mode == "json":
         data = []
         for i in msg:
             if military_time:
@@ -226,8 +226,6 @@ async def get_transcript(
         elif mode == "json":
             df.to_json(file := io.StringIO(), index=True, orient="records")
             return file.getvalue()
-        elif mode == "xml":
-            raise NotImplementedError("XML export is not implemented yet.")
 
     elif mode == "html":
         time_format = "%A, %e %B %Y at %H:%M" if military_time else "%A, %e %B %Y at %I:%M %p"
