@@ -81,20 +81,7 @@ class Regex:
 
 
 async def escape_mention(content):
-    for match in re.finditer(
-        "(%s|%s|%s|%s|%s|%s|%s|%s)"
-        % (
-            Regex.REGEX_ROLES,
-            Regex.REGEX_MEMBERS,
-            Regex.REGEX_CHANNELS,
-            Regex.REGEX_EMOJIS,
-            Regex.REGEX_ROLES_2,
-            Regex.REGEX_MEMBERS_2,
-            Regex.REGEX_CHANNELS_2,
-            Regex.REGEX_EMOJIS_2,
-        ),
-        content,
-    ):
+    for match in re.finditer(f"({Regex.REGEX_ROLES}|{Regex.REGEX_MEMBERS}|{Regex.REGEX_CHANNELS}|{Regex.REGEX_EMOJIS}|{Regex.REGEX_ROLES_2}|{Regex.REGEX_MEMBERS_2}|{Regex.REGEX_CHANNELS_2}|{Regex.REGEX_EMOJIS_2})", content):
         pre_content = content[: match.start()]
         post_content = content[match.end() :]
         match_content = content[match.start() : match.end()]
@@ -121,7 +108,7 @@ async def channel_mention(content, c):
     for regex in [Regex.REGEX_CHANNELS, Regex.REGEX_CHANNELS_2]:
         match = re.search(regex, content)
         while match is not None:
-            channel_id = int(match.group(1))
+            channel_id = int(match[1])
             channel = Channel(**await c._client.get_channel(channel_id))
 
             content = content.replace(
@@ -139,7 +126,7 @@ async def member_mention(content, c):
     for regex in [Regex.REGEX_MEMBERS, Regex.REGEX_MEMBERS_2]:
         match = re.search(regex, content)
         while match is not None:
-            member_id = int(match.group(1))
+            member_id = int(match[1])
             member = False
             try:
                 member_name = (
@@ -166,7 +153,7 @@ async def role_mention(content, c):
     for regex in [Regex.REGEX_ROLES, Regex.REGEX_ROLES_2]:
         match = re.search(regex, content)
         while match is not None:
-            role_id = int(match.group(1))
+            role_id = int(match[1])
             role = None
             try:
                 role = await Guild(**await c._client.get_guild(c.guild_id)).get_role(role_id)
@@ -176,10 +163,7 @@ async def role_mention(content, c):
             if role is None:
                 r = "@deleted-role"
             else:
-                if role.color == 0:
-                    color = "#dee0fc"
-                else:
-                    color = f"#{hex(role.color)[2:]}"
+                color = "#dee0fc" if role.color == 0 else f"#{hex(role.color)[2:]}"
                 r = '<span style="color: %s;">@%s</span>' % (color, role.name)
             content = content.replace(content[match.start() : match.end()], r)
 
@@ -195,7 +179,7 @@ async def time_mention(content, tz):
         regex, strf = p
         match = re.search(regex, content)
         while match is not None:
-            time = datetime.datetime.fromtimestamp(int(match.group(1)), timezone)
+            time = datetime.datetime.fromtimestamp(int(match[1]), timezone)
             ui_time = time.strftime(strf)
             tooltip_time = time.strftime("%A, %e %B %Y at %H:%M")
             original = match.group().replace("&lt;", "<").replace("&gt;", ">")
@@ -253,7 +237,7 @@ def return_to_markdown(content):
         pattern = re.compile(p)
         match = re.search(pattern, content)
         while match is not None:
-            affected_text = match.group(1)
+            affected_text = match[1]
             content = content.replace(
                 content[match.start() : match.end()], r % html.escape(affected_text)
             )
@@ -262,15 +246,19 @@ def return_to_markdown(content):
     pattern = re.compile(r'<a href="(.*?)">(.*?)</a>')
     match = re.search(pattern, content)
     while match is not None:
-        affected_url = match.group(1)
-        affected_text = match.group(2)
+        affected_url = match[1]
+        affected_text = match[2]
         if affected_url != affected_text:
             content = content.replace(
                 content[match.start() : match.end()],
-                "[%s](%s)" % (affected_text, affected_url),
+                f"[{affected_text}]({affected_url})",
             )
+
         else:
-            content = content.replace(content[match.start() : match.end()], "%s" % affected_url)
+            content = content.replace(
+                content[match.start() : match.end()], f"{affected_url}"
+            )
+
         match = re.search(pattern, content)
 
     return content.lstrip().rstrip()
@@ -295,10 +283,10 @@ def links(content):
 
             if "&lt;" in word and "&gt;" in word:
                 pattern = r"&lt;https?:\/\/(.*)&gt;"
-                match_url = re.search(pattern, word).group(1)
+                match_url = re.search(pattern, word)[1]
                 url = f'<a href="https://{match_url}">https://{match_url}</a>'
-                word = word.replace("https://" + match_url, url)
-                word = word.replace("http://" + match_url, url)
+                word = word.replace(f"https://{match_url}", url)
+                word = word.replace(f"http://{match_url}", url)
                 output.append(suppressed(word, match_url))
             elif "https://" in word:
                 pattern = r"https://[^\s>`\"*]*"
@@ -344,7 +332,7 @@ def normal_markdown(content):
         pattern = re.compile(p)
         match = re.search(pattern, content)
         while match is not None:
-            affected_text = match.group(1)
+            affected_text = match[1]
             content = content.replace(content[match.start() : match.end()], r % affected_text)
             match = re.search(pattern, content)
 
@@ -363,19 +351,19 @@ def normal_markdown(content):
 
     for x in content:
         if re.search(pattern, x) and y:
-            y = y + "<br>" + x[5:]
+            y = f"{y}<br>{x[5:]}"
         elif not y:
             if re.search(pattern, x):
                 y = x[5:]
             else:
                 new_content = new_content + x + "<br>"
         else:
-            new_content = new_content + f'<div class="quote">{y}</div>'
+            new_content = f'{new_content}<div class="quote">{y}</div>'
             new_content = new_content + x
             y = ""
 
     if y:
-        new_content = new_content + f'<div class="quote">{y}</div>'
+        new_content = f'{new_content}<div class="quote">{y}</div>'
 
     return new_content
 
@@ -411,7 +399,7 @@ def code_block_markdown(content, reference=False):
     match = re.search(pattern, content)
     while match is not None:
         language_class = "nohighlight"
-        affected_text = match.group(1)
+        affected_text = match[1]
 
         for language in markdown_languages:
             if affected_text.lower().startswith(language):
@@ -427,16 +415,18 @@ def code_block_markdown(content, reference=False):
             second_match = re.search(second_pattern, affected_text)
         affected_text = re.sub("  ", "&nbsp;&nbsp;", affected_text)
 
-        if not reference:
-            content = content.replace(
-                content[match.start() : match.end()],
-                '<div class="pre pre--multiline %s">%s</div>' % (language_class, affected_text),
-            )
-        else:
-            content = content.replace(
+        content = (
+            content.replace(
                 content[match.start() : match.end()],
                 '<span class="pre pre-inline">%s</span>' % affected_text,
             )
+            if reference
+            else content.replace(
+                content[match.start() : match.end()],
+                '<div class="pre pre--multiline %s">%s</div>'
+                % (language_class, affected_text),
+            )
+        )
 
         match = re.search(pattern, content)
 
@@ -444,7 +434,7 @@ def code_block_markdown(content, reference=False):
     pattern = re.compile(r"``(.*?)``")
     match = re.search(pattern, content)
     while match is not None:
-        affected_text = match.group(1)
+        affected_text = match[1]
         affected_text = return_to_markdown(affected_text)
         content = content.replace(
             content[match.start() : match.end()],
@@ -456,7 +446,7 @@ def code_block_markdown(content, reference=False):
     pattern = re.compile(r"`(.*?)`")
     match = re.search(pattern, content)
     while match is not None:
-        affected_text = match.group(1)
+        affected_text = match[1]
         affected_text = return_to_markdown(affected_text)
         content = content.replace(
             content[match.start() : match.end()],
@@ -472,8 +462,8 @@ def embed_markdown(content):
     pattern = re.compile(r"\[(.+?)]\((.+?)\)")
     match = re.search(pattern, content)
     while match is not None:
-        affected_text = match.group(1)
-        affected_url = match.group(2)
+        affected_text = match[1]
+        affected_url = match[2]
         content = content.replace(
             content[match.start() : match.end()],
             '<a href="%s">%s</a>' % (affected_url, affected_text),
@@ -501,12 +491,12 @@ def embed_markdown(content):
             else:
                 new_content = new_content + x + "\n"
         else:
-            new_content = new_content + f'<div class="quote">{y}</div>'
+            new_content = f'{new_content}<div class="quote">{y}</div>'
             new_content = new_content + x
             y = ""
 
     if y:
-        new_content = new_content + f'<div class="quote">{y}</div>'
+        new_content = f'{new_content}<div class="quote">{y}</div>'
 
     return new_content
 
@@ -531,13 +521,13 @@ async def parse_emoji(content):
         ],
     )
 
-    content = await convert_emoji([word for word in content])
+    content = await convert_emoji(list(content))
 
     for x in holder:
         p, r = x
         match = re.search(p, content)
         while match is not None:
-            emoji_id = match.group(1)
+            emoji_id = match[1]
             content = content.replace(content[match.start() : match.end()], r % emoji_id)
             match = re.search(p, content)
     return content
@@ -576,7 +566,7 @@ def get_file_size(file_size):
     i = int(math.floor(math.log(file_size, 1024)))
     p = math.pow(1024, i)
     s = round(file_size / p, 2)
-    return "%s %s" % (s, size_name[i])
+    return f"{s} {size_name[i]}"
 
 
 def get_file_icon(url) -> str:
